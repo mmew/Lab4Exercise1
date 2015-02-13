@@ -22,14 +22,33 @@ public class MainActivity extends ActionBarActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-    }
 
+        helper = new CourseDBHelper(this);
+    }
     @Override
     protected void onResume() {
         super.onResume();
 
+
+        SQLiteDatabase d = helper.getReadableDatabase();
+        Cursor cursor = d.rawQuery("SELECT SUM(Credit) as TotalCredit,SUM(Credit*value) as TotalGP  FROM course ;", null);
+        cursor.moveToFirst(); // get the first row
+        double TotalCredit = cursor.getDouble(0);
+        double TotalGP = cursor.getDouble(1);
         // This method is called when this activity is put foreground.
 
+        TextView tv = (TextView)findViewById(R.id.tvGP);
+        TextView tv1 = (TextView)findViewById(R.id.tvCR);
+        TextView tv2 = (TextView)findViewById(R.id.tvGPA);
+
+
+        double gpa = 0;
+        if (TotalCredit > 0)
+            gpa = TotalGP/TotalCredit;
+
+        tv.setText(Double.toString(TotalGP));
+        tv1.setText(Double.toString(TotalCredit));
+        tv2.setText(String.format("%.2f",gpa));
     }
 
     public void buttonClicked(View v) {
@@ -48,7 +67,9 @@ public class MainActivity extends ActionBarActivity {
                 break;
 
             case R.id.btReset:
-
+                SQLiteDatabase db = helper.getWritableDatabase();
+                db.delete("course","",null);
+                onResume();
                 break;
         }
     }
@@ -60,6 +81,14 @@ public class MainActivity extends ActionBarActivity {
                 String code = data.getStringExtra("code");
                 int credit = data.getIntExtra("credit", 0);
                 String grade = data.getStringExtra("grade");
+
+                SQLiteDatabase d = helper.getWritableDatabase();
+                ContentValues r = new ContentValues();
+                r.put("code",code);
+                r.put("credit",credit);
+                r.put("grade",grade);
+                r.put("value",gradeToValue(grade) );
+                d.insert("course",null,r);
 
             }
         }
